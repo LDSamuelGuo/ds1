@@ -1,6 +1,6 @@
 # the compile command compiles all java files
 compile: *.java
-	javac *.java
+javac -d destDir Calculator.java CalculatorClient.java CalculatorImplementation.java CalculatorServer.java
 
 # registry starts the rmiregistry
 registry:
