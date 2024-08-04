@@ -1,6 +1,6 @@
 # the compile command compiles all java files
 compile: *.java
-	javac *.java
+	/path/to/javac *.java
 
 # registry starts the rmiregistry
 registry:
