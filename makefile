@@ -1,5 +1,5 @@
-#compile: *.java
-#	javac *.java
+compile: *.java
+	javac -d ./*.java
 
 # registry starts the rmiregistry
 registry:
