@@ -3,6 +3,10 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 
 
+/**
+ * The CalculatorServer class is responsible for creating and registering
+ * the Calculator implementation with the RMI registry.
+ */
 public class CalculatorServer {
     public static void main(String args[]) {
 	try {
