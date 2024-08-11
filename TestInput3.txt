@@ -1,7 +1,0 @@
-pushValue -10
-pushValue 20
-pushValue 30
-pushOperation min
-pop
-isEmpty
-exit
