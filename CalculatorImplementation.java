@@ -1,184 +1,156 @@
 import java.rmi.RemoteException;
-import java.util.*;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 
-public class CalculatorImplementation implements Calculator {
+public class CalculatorImplementation extends UnicastRemoteObject implements Calculator {
     
-     // Constructor for CalculatorImplementation 
-    //if there is an issue with the RMI
-    
-    private Map<String, Stack<Integer>> values = new HashMap<>();
+    //This private member variable holds the map that associates client IDs with their respective stacks.
+    private final Map<String, Stack<Integer>> stacks;
 
-  
-    public CalculatorImplementation() throws RemoteException{
+    protected CalculatorImplementation() throws RemoteException {
         super();
-    };
-  
-     // Helper function to calculate GCD of two numbers 
-    //@param x First number
-    // @param y Second number
-    // The GCD of x and y
-    
-    private static int gcdHelper(int x, int y)
-    {   
-        if(y == 0)
-        {
-            return x;
+        stacks = new HashMap<>();  
+    }  
+
+    //This method retrieves the existing stack for a client or creates a new one if it doesn't exist.
+
+    private Stack<Integer> getStackForClient(String clientId) {
+        Stack<Integer> stack = stacks.get(clientId);
+        if (stack == null) {
+            stack = new Stack<>();
+            stacks.put(clientId, stack);
         }
-        return gcdHelper(y, x % y);
+        return stack;
     }
 
-    // this is the helper function for the lcm 
-    // function. it returns the lcm for 2
-    // numbers. 
-    private static int lcmHelper(int x, int y)
-    {
-        return (x * y) / gcdHelper(x, y);
+    // pushValue :: Pushes a new value onto the client's stack.
+    @Override
+    public synchronized void pushValue(int val, String clientId) throws RemoteException {
+        getStackForClient(clientId).push(val);
     }
 
-    // LCM returns the least common multiple of a
-    // stack of integers.
-    private static int lcm(Stack<Integer>stack)
-    {
-        int ans = stack.get(0);
+    // pushOperation :: Handles various operations (min, max, gcd, lcm)
+    @Override
+    public synchronized void pushOperation(String operator, String clientId) throws RemoteException {
         
-        for (int i = 1; i < stack.size(); i++) {
-            // calculate the lcm of the current lcm 
-            // and next element using the lcmHelper 
-            // function
-            ans = lcmHelper(ans, stack.get(i));
-        }
-        return ans;
-    }
+        Stack<Integer> stack = getStackForClient(clientId);
 
-    // this function returns the greatest common divisor 
-    // of the array by finding the gcd of the current gcd with 
-    // the next avaliable element in the array.
-    private static int gcd(Stack<Integer>stack)
-    {   
-        int ans = stack.get(0);
-        for (int i = 1; i < stack.size(); i++) {
-            ans = gcdHelper(ans, stack.get(i));
-        }
-
-        return ans;
-    }
-
-     
-     //Helper function to calculate GCD of two numbers 
-     // First number
-     //@param y Second number
-     //@return The GCD of x and y
-     
-    public String createUserID()
-    {
-        
-        String Id = UUID.randomUUID().toString();
-        
-        this.values.put(Id, new Stack<>());
-      
-        return Id;
-    }
-
-    
-     // Pushes a value on to the stack associated with the given id
-     // @param id, The user id
-     // @param val, the value to be pushed onto the stack 
-     //synchronized to ensure thread safety
-     
-    public void pushValue(String id, Integer val) 
-    {
-        this.values.get(id).push(val);
-    }
-
-   
-     // Applies operations on the stack associated with the user's unique id
-     // @param id, user id
-     // @param operator, the operation to be applied 
-     // synchronized to ensure thread safety
-     
-    public void pushOperation(String id, String operator)
-    {
-        // check if the stack has values, else do nothing
-        if(this.values.get(id).size() > 0)
+        // Checking for an empty stack and printing an error message (consider throwing an exception instead of just printing).
+        if (stack.isEmpty()) 
         {
-            int ans;
-            if(operator.contains("min"))
-            {
-                
-                ans = Collections.min(this.values.get(id));
-            }
-            else if (operator.contains("max"))
-            {
-                ans = Collections.max(this.values.get(id));
-            }
-            else if (operator.contains("gcd"))
-            {
-                
-                ans = gcd(this.values.get(id));
-            }
-            else
-            {
-                
-                ans = lcm(this.values.get(id));
-            }
-            
-            this.values.get(id).clear();
-            
-            this.values.get(id).add(ans);
+            System.out.println("Error: Stack is empty for operation " + operator);
+            return;
+        }
+
+        // Creating a temporary ArrayList to store popped values for efficient calculation.
+        List<Integer> values = new ArrayList<>();
+        
+        while (!stack.isEmpty()) {
+            values.add(stack.pop());
+        }
+        
+        // Using the Collections.min and Collections.max methods for finding minimum and maximum values, respectively.
+        if (operator.equals("min")) 
+        {
+            int min = Collections.min(values);
+            stack.push(min);
+        } 
+        else if (operator.equals("max")) 
+        {
+            int max = Collections.max(values);
+            stack.push(max);
+        } 
+
+        // Calling the gcd and lcm helper methods for calculating greatest common divisor and least common multiple.
+        else if (operator.equals("gcd")) 
+        {
+            stack.push(gcd(values));
+        }
+        else if (operator.equals("lcm")) 
+        {
+            stack.push(lcm(values));
+        }
+
+        // Throwing a RemoteException for unknown operators.
+        else {
+            throw new RemoteException("Unknown operator: " + operator);
         }
     }
 
-    // this function takes the user's id and 
-    // pops the value from the stack if there 
-    // is a value on the stack, else returns null
-    public Integer pop(String id) 
-    {
-        if(this.values.get(id).size() == 0)
+    // pop :: Pops the top element from the client's stack and throws an exception if the stack is empty.
+    @Override
+    public synchronized int pop(String clientId) throws RemoteException {
+        Stack<Integer> stack = getStackForClient(clientId);
+        if (stack.isEmpty()) {
+            throw new RemoteException("Stack is empty.");
+        }
+        return stack.pop();
+    }
+
+    // isEmpty :: Checks if the client's stack is empty.
+    @Override
+    public synchronized boolean isEmpty(String clientId) throws RemoteException {
+        if(getStackForClient(clientId).isEmpty())
         {
-            
-            return null;
+            return true;
         }
         else
         {
-           
-            return this.values.get(id).pop();
+            return false;
         }
     }
-    
-    // this function takes the user ID &
-    // determines whether their stack is empty
-    // it will return true for empty stack, and 
-    // false otherwise. 
-    public boolean isEmpty(String id)
-    {
-        return this.values.get(id).isEmpty();
+
+    private int gcd(List<Integer> values) {
+        if (values.isEmpty()) return 0;
+        int gcd = values.get(0);
+        for (int i = 1; i < values.size(); i++) {
+            gcd = gcd(gcd, values.get(i));
+        }
+        return gcd;
     }
 
-    // This is the delay pop function
-    // it takes the client ID and the time to sleep
-
-    public Integer delayPop(String id, Integer millis) 
-    {    
-        
-        if(this.values.get(id).size() > 0)
-        { 
-            int ans = -1;
-           
-            try {
-                Thread.sleep(millis);
-                
-                ans = this.values.get(id).pop();
-            } catch (Exception e) {
-                
-                System.err.println("Server exception: " + e.toString());
-                e.printStackTrace();
-            }
-            return ans;
+    private int gcd(int a, int b) {
+        if (b == 0) 
+        {
+            return a;
         }
         else
         {
-           
-            return null;
+            return gcd(b, a % b);
         }
+        
     }
+
+    // This method calculates the LCM using the efficient formula Math.abs(a * b) / gcd(a, b).
+    private int lcm(List<Integer> values) {
+        if (values.isEmpty()) return 0;
+        int lcm = values.get(0);
+        for (int i = 1; i < values.size(); i++) {
+            lcm = lcm(lcm, values.get(i));
+        }
+        return lcm;
+    }
+
+    private int lcm(int a, int b) {
+        return Math.abs(a * b) / gcd(a, b);
+    }
+
+    // delapPop :: This method introduces a delay before popping from the stack. It uses TimeUnit.MILLISECONDS.sleep to pause for the specified millis.
+    @Override
+    public synchronized int delayPop(int millis, String clientId) throws RemoteException {
+        try {
+            TimeUnit.MILLISECONDS.sleep(millis);    // Delay the pop operation.
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RemoteException("Interrupted during delay.", e);  // Handle interruption.
+        }
+        return pop(clientId);   // Perform the pop operation after the delay.
+    }
+
 }
