@@ -1,26 +1,20 @@
-import java.rmi.registry.Registry;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.server.UnicastRemoteObject;
+import java.rmi.Naming; // For binding remote objects to the registry.
+import java.rmi.registry.LocateRegistry; // For creating and accessing the registry.
 
-
-/**
- * The CalculatorServer class is responsible for creating and registering
- * the Calculator implementation with the RMI registry.
- */
 public class CalculatorServer {
-    public static void main(String args[]) {
-	try {
-	
-	    CalculatorImplementation obj = new CalculatorImplementation();
-		
-	    Calculator stub = (Calculator) UnicastRemoteObject.exportObject(obj, 0);
+    public static void main(String[] args) {
+        try {
+            // It creates a registry on port 1099 using LocateRegistry.createRegistry(1099)
+            LocateRegistry.createRegistry(1099);
 
-	    Registry registry = LocateRegistry.getRegistry();
-	    registry.rebind("Calculator", stub);
 
-	    System.err.println("Server ready");
+            CalculatorImplementation CalImpl = new CalculatorImplementation();
+
+            // It binds the CalculatorImplementation object to the registry with the name "CalculatorService "using Naming.rebind("CalculatorService", CalImpl).
+            // This allows clients to look up and access the remote object using this name.
+            System.out.println("Calculator Running..."); 
+            Naming.rebind("CalculatorService", CalImpl);
         } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
             e.printStackTrace();
         }
     }
