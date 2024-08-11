@@ -3,12 +3,9 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface Calculator extends Remote {
-
-    
-    public String createUserID() throws RemoteException;
-    public void pushValue(String id, Integer val) throws RemoteException;
-    public void pushOperation(String id, String operator) throws RemoteException;
-    public Integer pop(String id)  throws RemoteException;
-    public boolean isEmpty(String id) throws RemoteException;
-    public Integer delayPop(String id, Integer millis) throws RemoteException;
+    void pushValue(int val, String clientId) throws RemoteException;
+    void pushOperation(String operator, String clientId) throws RemoteException;
+    int pop(String clientId) throws RemoteException;
+    boolean isEmpty(String clientId) throws RemoteException;
+    int delayPop(int millis, String clientId) throws RemoteException;
 }
