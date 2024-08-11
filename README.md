@@ -1,4 +1,4 @@
-How to Compile and Run the Program
+## How to Compile and Run the Program
 To initialize the RMI registry, run: make registry.
 To compile and run the server, execute: make compile followed by make server.
 For automated client testing, run: make client.
